@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sleepy Forest Bedtime</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: the little dragon's scene is the hero beside a big clock; tonight's five steps run below as a timeline. */
+:root {
+  --sky: #eef2e7; --ink: #2b3830; --soft: #5d6d63; --card: #ffffff; --line: #d6dfd2;
+  --moss: #3f7d50; --lamp: #e9a93a; --rose: #e27d8f;
+  --fur: #8b969a; --belly: #f3ead4; --scale: #f2853a; --tummy: #fbe2a0;
+  --display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --sky: #141a2c; --ink: #eef1f8; --soft: #a7afc6; --card: #1e2540; --line: #2f3757; --moss: #8fd3a0; --lamp: #f4c36a; --rose: #f19aaa; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --sky: #141a2c; --ink: #eef1f8; --soft: #a7afc6; --card: #1e2540; --line: #2f3757; --moss: #8fd3a0; --lamp: #f4c36a; --rose: #f19aaa; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--sky); color: var(--ink); font-family: var(--body); font-size: 1.05rem; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 62rem; margin: 0 auto; padding-block: 1.4rem 3rem; display: grid; gap: 1.6rem; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; }
+h2 { font-size: 1.5rem; font-weight: 800; }
+h3 { font-size: 1.2rem; font-weight: 800; }
+p { margin: 0; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--moss); outline-offset: 2px; }
+.eyebrow { font-weight: 800; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--moss); }
+
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: .8rem; }
+.stars { display: flex; gap: .3rem; font-size: 1.8rem; line-height: 1; }
+.stars span { color: var(--line); transition: color .3s; }
+.stars span.on { color: var(--lamp); }
+.stars span.pop { animation: pop .6s ease; }
+@keyframes pop { 40% { transform: scale(1.6) rotate(-12deg); } }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1.4rem; align-items: center; }
+.scene-panel { border-radius: 22px; overflow: hidden; background: var(--card); box-shadow: 0 6px 24px rgb(20 30 40 / .12); }
+.scene svg { display: block; width: 100%; height: auto; }
+.now { display: grid; gap: .8rem; min-width: 0; }
+.clock { font-family: var(--display); font-weight: 800; font-size: clamp(3.2rem, 11vw, 5.2rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.clock span { font-size: .4em; margin-left: .2em; color: var(--soft); }
+.nowline { font-size: 1.15rem; font-weight: 700; color: var(--soft); }
+.nowline b { color: var(--ink); }
+.big { font-family: var(--display); font-weight: 800; font-size: 1.25rem; color: #fff; background: var(--moss); border: 0; border-radius: 999px; padding: .75rem 1.4rem; justify-self: start; box-shadow: 0 4px 0 rgb(0 0 0 / .18); }
+.big:active { transform: translateY(2px); box-shadow: 0 2px 0 rgb(0 0 0 / .18); }
+.big.armed { background: var(--card); color: var(--moss); border: 2px solid var(--moss); box-shadow: none; }
+.armnote { font-size: .92rem; color: var(--soft); }
+.toggles { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .95rem; font-weight: 700; }
+.toggles label { display: flex; gap: .4rem; align-items: center; cursor: pointer; }
+.toggles input { width: 1.1rem; height: 1.1rem; accent-color: var(--moss); }
+
+.routine { list-style: none; margin: .8rem 0 0; padding: 0; display: grid; gap: .7rem; }
+.row { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto auto; gap: 1rem; align-items: center; background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: .6rem .9rem .6rem .6rem; }
+.row .mini { border-radius: 12px; overflow: hidden; }
+.row .txt { display: grid; gap: .15rem; min-width: 0; }
+.row .txt p { color: var(--soft); font-size: .95rem; }
+.pill { justify-self: start; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: .12rem .55rem; border-radius: 999px; background: var(--line); color: var(--soft); }
+.row[data-state="now"] { border-color: var(--lamp); }
+.row[data-state="now"] .pill { background: var(--lamp); color: #2b2205; }
+.row[data-state="done"] .pill { background: var(--moss); color: #fff; }
+.row input[type="time"] { font: 700 1.05rem var(--body); color: var(--ink); background: var(--sky); border: 2px solid var(--line); border-radius: 10px; padding: .35rem .5rem; font-variant-numeric: tabular-nums; }
+.ghost { font-weight: 800; color: var(--moss); background: transparent; border: 2px solid var(--moss); border-radius: 999px; padding: .4rem .9rem; }
+.foot { font-size: .9rem; color: var(--soft); max-width: 40rem; }
+@media (max-width: 760px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .row { grid-template-columns: 5.5rem minmax(0, 1fr); }
+  .row .time, .row .ghost { grid-column: 2; justify-self: start; }
+}
+
+/* NO SCHOOL! flash */
+.noschool { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; font-weight: 800; color: var(--ink); }
+.ns-flash { font-family: var(--display); font-weight: 800; font-size: 1.35rem; letter-spacing: .02em; color: #ffffff; background: #ff4f7b; border-radius: 999px; padding: .05rem .8rem; animation: nsflash 1.1s ease-in-out infinite; }
+@keyframes nsflash { 0%, 100% { transform: scale(1) rotate(0); background: #ff4f7b; } 50% { transform: scale(1.1) rotate(-3deg); background: #ff9f1c; } }
+@media (prefers-reduced-motion: reduce) { .ns-flash { animation: none; } }
+
+/* Room light: dims with the routine */
+#dimmer { position: fixed; inset: 0; background: #04060f; opacity: 0; pointer-events: none; transition: opacity 4s ease; z-index: 5; }
+body[data-mood="dim"] #dimmer { opacity: .32; }
+body[data-mood="off"] #dimmer { opacity: .58; }
+
+/* Alarm screen */
+.alarm { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgb(10 14 30 / .7);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); overflow-y: auto; }
+.al-card { background: var(--card); color: var(--ink); border-radius: 26px; width: min(100%, 36rem); overflow: hidden; display: grid; animation: arrive .5s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes arrive { from { transform: scale(.85); opacity: 0; } }
+.al-body { padding: 1rem 1.3rem 1.3rem; display: grid; gap: .5rem; }
+.al-time { font-family: var(--display); font-weight: 800; color: var(--moss); font-size: 1.1rem; }
+.al-body h2 { font-size: clamp(1.8rem, 6vw, 2.4rem); }
+.al-body p { font-size: 1.1rem; color: var(--soft); }
+.al-actions { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; margin-top: .4rem; }
+
+/* Scene animations */
+.scene svg * { transform-box: fill-box; }
+.ln { stroke: #2b2b2b; stroke-width: 3.5; fill: none; stroke-linecap: round; }
+.thin { stroke-width: 2; opacity: .7; }
+.brush-arm { animation: scrub .32s ease-in-out infinite alternate; }
+@keyframes scrub { from { transform: translateX(-7px); } to { transform: translateX(7px); } }
+.bubble { opacity: 0; animation: rise 2.2s ease-in infinite; }
+@keyframes rise { 0% { transform: translateY(0) scale(.6); opacity: 0; } 15% { opacity: .95; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }
+.blink { transform-origin: center; animation: blink 4s infinite; }
+@keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.page { transform-origin: left center; animation: flip 4s ease-in-out infinite; }
+@keyframes flip { 0%, 50% { transform: scaleX(1); opacity: 1; } 75% { transform: scaleX(-1); opacity: 1; } 95% { transform: scaleX(-1); opacity: 0; } 100% { transform: scaleX(1); opacity: 0; } }
+.glow { animation: glow 3s ease-in-out infinite alternate; }
+@keyframes glow { from { opacity: .45; } to { opacity: .85; } }
+.sparkle, .star { animation: twinkle 2.4s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.cap { animation: capdrop 5s ease-out infinite; }
+@keyframes capdrop { 0% { transform: translateY(-90px); opacity: 0; } 15% { transform: translateY(6px); opacity: 1; } 22%, 100% { transform: translateY(0); opacity: 1; } }
+.yawn { transform-origin: center; animation: yawn 3s ease-in-out infinite; }
+@keyframes yawn { 0%, 30%, 100% { transform: scaleY(.4); } 50%, 70% { transform: scaleY(1.3); } }
+.stretch-l { transform-origin: right bottom; animation: stretchL 3s ease-in-out infinite; }
+.stretch-r { transform-origin: left bottom; animation: stretchR 3s ease-in-out infinite; }
+@keyframes stretchL { 0%, 30%, 100% { transform: rotate(0); } 50%, 70% { transform: rotate(28deg); } }
+@keyframes stretchR { 0%, 30%, 100% { transform: rotate(0); } 50%, 70% { transform: rotate(-28deg); } }
+.wave { transform-origin: left bottom; animation: wave .8s ease-in-out infinite alternate; }
+@keyframes wave { from { transform: rotate(-18deg); } to { transform: rotate(14deg); } }
+.sink { animation: sink 4s ease-out both; }
+@keyframes sink { from { transform: translateY(-34px); } to { transform: translateY(0); } }
+.moonrise { animation: moonrise 6s ease-out both; }
+@keyframes moonrise { from { transform: translateY(60px); } to { transform: translateY(0); } }
+.dimlayer { animation: dimlayer 6s ease-in both; }
+@keyframes dimlayer { from { opacity: 0; } to { opacity: .38; } }
+.breathe { transform-origin: center bottom; animation: breathe 3.6s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.06); } }
+.zz { opacity: 0; animation: zz 3.6s ease-in infinite; }
+@keyframes zz { 0% { transform: translate(0, 0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(24px, -64px); opacity: 0; } }
+.flame { transform-origin: center bottom; animation: flicker .5s ease-in-out infinite alternate; }
+@keyframes flicker { from { transform: scale(1, 1) rotate(-4deg); } to { transform: scale(.9, 1.12) rotate(4deg); } }
+.munch { animation: munch 1.6s ease-in-out infinite; }
+@keyframes munch { 0%, 100% { transform: translate(18px, 26px); } 45%, 60% { transform: translate(0, 0); } }
+.crumb { opacity: 0; animation: crumb 1.6s ease-in infinite; }
+@keyframes crumb { 0%, 50% { transform: translateY(0); opacity: 0; } 55% { opacity: 1; } 100% { transform: translateY(46px); opacity: 0; } }
+.paused * { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .scene svg * { animation: none !important; }
+  .bubble, .zz { opacity: .8; }
+  .al-card, .stars span.pop { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<main>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Tonight’s bedtime</p>
+      <h1>Sleepy Forest Bedtime</h1>
+    </div>
+    <div class="stars" id="stars" aria-label="Stars earned tonight"></div>
+  </header>
+
+  <section class="hero">
+    <div class="scene-panel"><div class="scene" id="hero-scene"></div></div>
+    <div class="now">
+      <p class="clock" id="clock" aria-live="off">9:24<span>pm</span></p>
+      <p class="noschool" id="noschool" hidden><span class="ns-flash">NO SCHOOL!</span> <span id="ns-why">Tomorrow is Saturday</span></p>
+      <p class="nowline" id="nowline">Next: <b>Biscuit and milk</b> at 9:25 pm</p>
+      <button class="big" type="button" id="arm">Turn on tonight’s alarms</button>
+      <p class="armnote" id="armnote">Tap once so the alarms can play sound. Keep this page open with the volume up.</p>
+      <div class="toggles">
+        <label for="opt-chime"><input type="checkbox" id="opt-chime" checked> Music-box chime</label>
+        <label for="opt-voice"><input type="checkbox" id="opt-voice" checked> Read it aloud</label>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tonight’s routine</h2>
+    <ol class="routine" id="routine"></ol>
+  </section>
+
+  <p class="foot">Alarms only ring while this page is open on this device, so leave it on a tablet or phone near the bed. Change any time and it’s remembered here. Tap Watch to preview a scene.</p>
+</main>
+
+<div id="dimmer" aria-hidden="true"></div>
+
+<div class="alarm" id="alarm" role="dialog" aria-modal="true" aria-labelledby="al-title" hidden>
+  <div class="al-card">
+    <div class="scene" id="al-scene"></div>
+    <div class="al-body">
+      <p class="al-time" id="al-time">9:30 pm</p>
+      <p class="noschool" id="al-noschool" hidden><span class="ns-flash">NO SCHOOL!</span> <span id="al-ns-why"></span></p>
+      <h2 id="al-title">Time to brush your teeth!</h2>
+      <p id="al-msg"></p>
+      <div class="al-actions">
+        <button class="big" type="button" id="al-done">I did it! ★</button>
+        <button class="ghost" type="button" id="al-close">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var STEPS = [
+    { id: 'snack', time: '21:25', name: 'Biscuit and milk', sub: 'Our forest friend has a snack too',
+      title: 'Snack time!', msg: 'One biscuit and a cup of milk. Our forest friend is munching too. Nom nom nom.',
+      say: 'Snack time! A biscuit and a cup of milk. Nom nom nom.' },
+    { id: 'read', time: '21:35', name: 'Bedtime reading', sub: 'Snuggle up with a story',
+      title: 'Story time!', msg: 'Pick a bedtime book and snuggle up. Our little dragon has a book too.',
+      say: 'Story time! Let’s read a bedtime book together.' },
+    { id: 'brush', time: '21:55', name: 'Brush your teeth', sub: 'Our forest friend brushes too',
+      title: 'Time to brush your teeth!', msg: 'Milk and biscuits are done, so let’s brush them away. Our forest friend is brushing too.',
+      say: 'Brush, brush, brush! It’s time to brush your teeth.' },
+    { id: 'dim', time: '22:10', name: 'Lights dim', sub: 'Climb into bed and get cosy',
+      title: 'Lights dim', msg: 'The lights are getting sleepy. Climb into bed and get cosy, just like our two friends.',
+      say: 'The lights are getting sleepy. Time to climb into bed.' },
+    { id: 'off', time: '22:15', name: 'Lights off', sub: 'Eyes closed, sweet dreams',
+      title: 'Lights off. Goodnight!', msg: 'Close your eyes. The little dragon and the forest friend are fast asleep. Sweet dreams.',
+      say: 'Lights off. Goodnight, sleep tight, sweet dreams.' }
+  ];
+
+  /* Singapore public holidays, from the Ministry of Manpower dataset on data.gov.sg
+     (collection 691), fetched 20 Oct 2026. The page can't call the API itself, so these are built in. */
+  var HOLIDAYS = {
+    '2026-01-01': 'New Year’s Day', '2026-02-17': 'Chinese New Year', '2026-02-18': 'Chinese New Year',
+    '2026-03-21': 'Hari Raya Puasa', '2026-04-03': 'Good Friday', '2026-05-01': 'Labour Day',
+    '2026-05-27': 'Hari Raya Haji', '2026-05-31': 'Vesak Day', '2026-06-01': 'Vesak Day (Observed)',
+    '2026-08-09': 'National Day', '2026-08-10': 'National Day (Observed)', '2026-11-08': 'Deepavali',
+    '2026-11-09': 'Deepavali (Observed)', '2026-12-25': 'Christmas Day',
+    '2027-01-01': 'New Year’s Day', '2027-02-06': 'Chinese New Year', '2027-02-07': 'Chinese New Year',
+    '2027-02-08': 'Chinese New Year (Observed)', '2027-03-10': 'Hari Raya Puasa', '2027-03-26': 'Good Friday',
+    '2027-05-01': 'Labour Day', '2027-05-17': 'Hari Raya Haji', '2027-05-20': 'Vesak Day',
+    '2027-08-09': 'National Day', '2027-10-28': 'Deepavali', '2027-12-25': 'Christmas Day'
+  };
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  /* Is tomorrow a no-school day? After midnight, "tomorrow" still means the day after tonight. */
+  function noSchool(now) {
+    var t = new Date(now); if (t.getHours() < 6) t.setDate(t.getDate() - 1);
+    t.setDate(t.getDate() + 1);
+    var h = HOLIDAYS[ymd(t)];
+    if (h) return 'Tomorrow is ' + h;
+    if (t.getDay() === 0 || t.getDay() === 6) return 'Tomorrow is ' + DAYS[t.getDay()];
+    return null;
+  }
+
+  /* ---------- Storage ---------- */
+  function load(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  // v2: the routine changed (snack added, brushing moved), so earlier saved times no longer apply.
+  var savedTimes = load('sfb-times-v2', {});
+  STEPS.forEach(function (s) { if (/^\d\d:\d\d$/.test(savedTimes[s.id] || '')) s.time = savedTimes[s.id]; });
+  var opts = load('sfb-opts', { chime: true, voice: true });
+  function nightKey(d) { var x = new Date(d); if (x.getHours() < 6) x.setDate(x.getDate() - 1); return x.getFullYear() + '-' + (x.getMonth() + 1) + '-' + x.getDate(); }
+  function doneList() { return load('sfb-done-' + nightKey(new Date()), []); }
+  function markDone(id) { var l = doneList(); if (l.indexOf(id) < 0) { l.push(id); save('sfb-done-' + nightKey(new Date()), l); } }
+
+  /* ---------- Time helpers ---------- */
+  function mins(t) { var p = t.split(':'); return +p[0] * 60 + +p[1]; }
+  function fmt(t) { var p = t.split(':'), h = +p[0], m = p[1]; return (h % 12 || 12) + ':' + m + ' ' + (h >= 12 ? 'pm' : 'am'); }
+  function nowMins(d) { return d.getHours() * 60 + d.getMinutes(); }
+  function untilText(diff) { if (diff < 1) return 'now'; var h = Math.floor(diff / 60), m = diff % 60; return 'in ' + (h ? h + ' h ' : '') + (m ? m + ' min' : '').trim(); }
+  function stepAt(s, d) { var x = new Date(d); var p = s.time.split(':'); x.setHours(+p[0], +p[1], 0, 0); return x; }
+
+  /* ---------- Character 1: the little dragon (orange, flame tail) ---------- */
+  function dragon(o) {
+    o = o || {};
+    var eyes;
+    if (o.eyes === 'closed') eyes = '<path class="ln" d="M66 82 q12 10 24 0"/><path class="ln" d="M110 82 q12 10 24 0"/>';
+    else if (o.eyes === 'sleepy') eyes = '<path d="M65 76 a13 15 0 0 0 26 0z" fill="#fff"/><ellipse cx="79" cy="82" rx="5" ry="5.5" fill="#1d2b4a"/><path d="M109 76 a13 15 0 0 0 26 0z" fill="#fff"/><ellipse cx="121" cy="82" rx="5" ry="5.5" fill="#1d2b4a"/><path class="ln" d="M63 76 h30 M107 76 h30"/>';
+    else eyes = '<g class="blink"><ellipse cx="78" cy="76" rx="13" ry="16" fill="#fff"/><ellipse cx="81" cy="79" rx="7" ry="10" fill="#1d2b4a"/><circle cx="84" cy="74" r="3" fill="#fff"/>' +
+      '<ellipse cx="122" cy="76" rx="13" ry="16" fill="#fff"/><ellipse cx="119" cy="79" rx="7" ry="10" fill="#1d2b4a"/><circle cx="122" cy="74" r="3" fill="#fff"/></g>';
+    var mouth = o.mouth === 'open' ? '<path d="M72 102 q28 28 56 0 z" fill="#7a2e2e"/><path d="M76 104 h48" stroke="#fff" stroke-width="5"/><path d="M90 114 q10 6 20 0" fill="#ff8f8f"/>'
+      : o.mouth === 'small' ? '<path class="ln" d="M88 106 q12 8 24 0"/>'
+      : '<path class="ln" d="M72 104 q28 20 56 0"/>';
+    var tail = '<path d="M150 204 Q206 206 200 150" stroke="var(--scale)" stroke-width="20" fill="none" stroke-linecap="round"/>' +
+      '<g class="flame"><path d="M200 104 C220 126 216 148 200 154 C184 148 180 126 200 104 Z" fill="#ff8a2a"/><path d="M200 122 C210 134 208 148 200 150 C192 148 190 134 200 122 Z" fill="#ffe066"/></g>';
+    return '<g>' + tail +
+      '<ellipse cx="100" cy="172" rx="68" ry="62" fill="var(--scale)"/>' +
+      '<ellipse cx="100" cy="182" rx="42" ry="46" fill="var(--tummy)"/>' +
+      '<ellipse cx="74" cy="228" rx="20" ry="9" fill="var(--scale)"/><ellipse cx="126" cy="228" rx="20" ry="9" fill="var(--scale)"/>' +
+      '<g fill="#fff"><path d="M60 230 l3 6 3 -6z M68 232 l3 6 3 -6z M126 232 l3 6 3 -6z M134 230 l3 6 3 -6z"/></g>' +
+      '<ellipse cx="100" cy="82" rx="64" ry="60" fill="var(--scale)"/>' +
+      '<ellipse cx="66" cy="98" rx="9" ry="6" fill="#ff9f8a" opacity=".55"/><ellipse cx="134" cy="98" rx="9" ry="6" fill="#ff9f8a" opacity=".55"/>' +
+      eyes + '<circle cx="94" cy="94" r="2" fill="#7a3d1e"/><circle cx="106" cy="94" r="2" fill="#7a3d1e"/>' + mouth +
+      (o.extra || '') + '</g>';
+  }
+
+  /* ---------- Character 2: the forest friend (grey, round, Totoro-style) ---------- */
+  function forest(o) {
+    o = o || {};
+    var eyes;
+    if (o.eyes === 'closed') eyes = '<path class="ln" d="M60 88 q12 9 24 0"/><path class="ln" d="M116 88 q12 9 24 0"/>';
+    else if (o.eyes === 'sleepy') eyes = '<path d="M60 84 a12 12 0 0 0 24 0z" fill="#fff"/><circle cx="73" cy="88" r="4.5" fill="#222"/><path d="M116 84 a12 12 0 0 0 24 0z" fill="#fff"/><circle cx="127" cy="88" r="4.5" fill="#222"/><path class="ln" d="M58 84 h28 M114 84 h28"/>';
+    else eyes = '<g class="blink"><circle cx="72" cy="86" r="12" fill="#fff"/><circle cx="74" cy="87" r="5.5" fill="#222"/><circle cx="128" cy="86" r="12" fill="#fff"/><circle cx="126" cy="87" r="5.5" fill="#222"/></g>';
+    var mouth = o.mouth === 'open' ? '<path d="M66 102 q34 32 68 0 z" fill="#3b2b2b"/><path d="M70 104 h60" stroke="#fff" stroke-width="5"/>'
+      : o.mouth === 'small' ? '<path class="ln" d="M86 106 q14 9 28 0"/>'
+      : '<path class="ln" d="M64 104 q36 24 72 0"/>';
+    var chev = [[80, 132], [100, 127], [120, 132], [68, 152], [89, 149], [111, 149], [132, 152]].map(function (p) {
+      return '<path d="M' + (p[0] - 8) + ' ' + p[1] + ' l8 -7 l8 7" stroke="var(--fur)" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+    }).join('');
+    return '<g>' +
+      '<ellipse cx="66" cy="38" rx="12" ry="30" fill="var(--fur)" transform="rotate(-10 66 38)"/>' +
+      '<ellipse cx="134" cy="38" rx="12" ry="30" fill="var(--fur)" transform="rotate(10 134 38)"/>' +
+      '<ellipse cx="100" cy="138" rx="84" ry="92" fill="var(--fur)"/>' +
+      '<ellipse cx="100" cy="160" rx="60" ry="62" fill="var(--belly)"/>' + chev +
+      '<ellipse cx="72" cy="226" rx="22" ry="8" fill="var(--fur)"/><ellipse cx="128" cy="226" rx="22" ry="8" fill="var(--fur)"/>' +
+      eyes + '<ellipse cx="100" cy="78" rx="9" ry="4.5" fill="#2b2b2b"/>' + mouth +
+      '<g class="ln thin"><path d="M56 96 L24 88"/><path d="M56 102 L22 103"/><path d="M58 108 L26 117"/><path d="M144 96 L176 88"/><path d="M144 102 L178 103"/><path d="M142 108 L174 117"/></g>' +
+      (o.extra || '') + '</g>';
+  }
+
+  function at(x, y, s, inner, cls) { return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><g class="' + (cls || '') + '">' + inner + '</g></g>'; }
+  function svg(label, inner) { return '<svg viewBox="0 0 400 300" role="img" aria-label="' + label + '">' + inner + '</svg>'; }
+  var STARS_BG = [[30, 30], [80, 60], [140, 24], [250, 40], [330, 26], [370, 70], [60, 120], [200, 70], [300, 110]].map(function (p, i) {
+    return '<circle class="star" cx="' + p[0] + '" cy="' + p[1] + '" r="' + (i % 3 ? 1.8 : 2.6) + '" fill="#fdf6d8" style="animation-delay:' + (i * 0.3) + 's"/>';
+  }).join('');
+  function bed(inner, blanketCls) {
+    return '<rect x="30" y="196" width="340" height="80" rx="16" fill="#9a6a48"/><rect x="22" y="150" width="30" height="126" rx="10" fill="#7f5638"/>' +
+      '<ellipse cx="200" cy="196" rx="150" ry="22" fill="#fbf7ee"/>' + inner +
+      '<g class="' + (blanketCls || '') + '"><path d="M40 214 Q200 186 360 214 L360 262 Q200 276 40 262 Z" fill="var(--rose)"/>' +
+      [70, 120, 170, 220, 270, 320].map(function (x, i) { return '<circle cx="' + x + '" cy="' + (232 + (i % 2) * 14) + '" r="5" fill="#fff" opacity=".55"/>'; }).join('') + '</g>';
+  }
+  function zzz(x, y, color) {
+    return [0, 1.2, 2.4].map(function (d, i) { return '<text class="zz" x="' + (x + i * 10) + '" y="' + (y - i * 4) + '" font-family="Baloo 2, sans-serif" font-weight="800" font-size="' + (18 + i * 6) + '" fill="' + color + '" style="animation-delay:' + d + 's">Z</text>'; }).join('');
+  }
+
+  var SCENES = {
+    idle: function () {
+      return svg('The forest friend and the little dragon waving hello in a sunset forest',
+        '<rect width="400" height="300" fill="#f6d9a8"/><circle cx="330" cy="70" r="30" fill="#f7b267"/>' +
+        '<path d="M0 220 Q60 150 120 210 Q180 140 250 205 Q320 150 400 200 L400 300 L0 300 Z" fill="#7aa36b"/>' +
+        '<path d="M0 250 Q100 220 200 250 T400 245 L400 300 L0 300 Z" fill="#5c8a55"/>' +
+        at(28, 70, 0.88, forest({ extra: '<ellipse cx="24" cy="160" rx="16" ry="36" fill="var(--fur)" transform="rotate(14 24 160)"/><g class="wave"><ellipse cx="182" cy="96" rx="15" ry="38" fill="var(--fur)" transform="rotate(30 182 96)"/></g>' })) +
+        at(222, 108, 0.74, dragon({ extra: '<g class="wave"><ellipse cx="34" cy="122" rx="14" ry="34" fill="var(--scale)" transform="rotate(-34 34 122)"/></g><ellipse cx="160" cy="168" rx="14" ry="32" fill="var(--scale)" transform="rotate(-14 160 168)"/>' })));
+    },
+    snack: function () {
+      var crumbs = [[112, 122, 0], [124, 126, .2], [104, 128, .4]].map(function (c) {
+        return '<circle class="crumb" cx="' + c[0] + '" cy="' + c[1] + '" r="2.6" fill="#c88a4a" style="animation-delay:' + c[2] + 's"/>';
+      }).join('');
+      return svg('The forest friend eating a biscuit with a cup of milk',
+        '<rect width="400" height="300" fill="#fde5d2"/><rect x="0" y="0" width="400" height="18" fill="#f6c9a8"/>' +
+        '<g fill="#f9d4b8"><circle cx="40" cy="60" r="6"/><circle cx="90" cy="40" r="6"/><circle cx="350" cy="50" r="6"/><circle cx="310" cy="110" r="6"/></g>' +
+        at(70, 40, 0.9, forest({ mouth: 'open', extra:
+          '<ellipse cx="34" cy="178" rx="16" ry="34" fill="var(--fur)" transform="rotate(30 34 178)"/>' +
+          '<g class="munch"><ellipse cx="160" cy="128" rx="15" ry="38" fill="var(--fur)" transform="rotate(-55 160 128)"/>' +
+          '<circle cx="120" cy="104" r="17" fill="#d9a05b"/><circle cx="120" cy="104" r="17" fill="none" stroke="#b97c3a" stroke-width="2"/>' +
+          '<g fill="#5b3a22"><circle cx="114" cy="98" r="2.6"/><circle cx="126" cy="102" r="2.6"/><circle cx="118" cy="111" r="2.6"/></g>' +
+          '<circle cx="106" cy="94" r="7" fill="#fde5d2"/></g>' + crumbs })) +
+        '<rect x="0" y="238" width="400" height="62" fill="#b9825a"/><rect x="0" y="232" width="400" height="10" fill="#a06d48"/>' +
+        '<g transform="translate(280 168)"><path d="M0 0 H50 L46 66 Q25 72 4 66 Z" fill="#ffffff" stroke="#9fc6e0" stroke-width="3"/>' +
+        '<path d="M2 16 H48 L45 64 Q25 70 5 64 Z" fill="#f4f8fb"/><path d="M50 18 q22 4 18 24 q-4 16 -20 14" fill="none" stroke="#9fc6e0" stroke-width="5"/>' +
+        '<text x="25" y="48" text-anchor="middle" font-family="Baloo 2, sans-serif" font-weight="800" font-size="13" fill="#7fa8c8">MILK</text></g>' +
+        '<g transform="translate(200 214)"><ellipse cx="0" cy="12" rx="40" ry="9" fill="#ffffff"/><circle cx="-14" cy="4" r="13" fill="#d9a05b"/><circle cx="12" cy="6" r="13" fill="#d9a05b"/>' +
+        '<g fill="#5b3a22"><circle cx="-18" cy="0" r="2.2"/><circle cx="-10" cy="8" r="2.2"/><circle cx="10" cy="2" r="2.2"/><circle cx="16" cy="9" r="2.2"/></g></g>');
+    },
+    brush: function () {
+      var tiles = ''; for (var x = 0; x <= 400; x += 40) tiles += '<path d="M' + x + ' 0 V260"/>'; for (var y = 0; y <= 260; y += 40) tiles += '<path d="M0 ' + y + ' H400"/>';
+      var bubbles = [[88, 108, 0], [104, 104, .5], [118, 110, 1], [94, 112, 1.4], [112, 100, 1.8]].map(function (b) {
+        return '<circle class="bubble" cx="' + b[0] + '" cy="' + b[1] + '" r="6" fill="#ffffff" stroke="#bfe3ef" stroke-width="1.5" style="animation-delay:' + b[2] + 's"/>';
+      }).join('');
+      return svg('The forest friend brushing its teeth with foamy bubbles',
+        '<rect width="400" height="300" fill="#cfe8ef"/><g stroke="#b6d5de" stroke-width="2">' + tiles + '</g><rect y="260" width="400" height="40" fill="#a7c9d3"/>' +
+        '<rect x="300" y="150" width="34" height="46" rx="6" fill="#ffb3c1"/><rect x="309" y="120" width="5" height="34" fill="#7fc8a9"/><rect x="319" y="126" width="5" height="28" fill="#f2c94c"/>' +
+        at(90, 52, 0.95, forest({ mouth: 'open', extra:
+          '<ellipse cx="24" cy="160" rx="16" ry="36" fill="var(--fur)" transform="rotate(14 24 160)"/>' +
+          '<g class="brush-arm"><ellipse cx="160" cy="128" rx="15" ry="38" fill="var(--fur)" transform="rotate(-55 160 128)"/>' +
+          '<rect x="104" y="100" width="74" height="9" rx="4.5" fill="#ff8fa3"/><rect x="90" y="95" width="18" height="11" rx="3" fill="#ffffff" stroke="#9fd8ea" stroke-width="2"/></g>' + bubbles })));
+    },
+    read: function () {
+      var sparkles = [[150, 120, 0], [250, 100, .8], [200, 80, 1.6]].map(function (s) {
+        return '<path class="sparkle" d="M' + s[0] + ' ' + (s[1] - 8) + ' l3 6 6 2 -6 2 -3 6 -3 -6 -6 -2 6 -2z" fill="#f2c94c" style="animation-delay:' + s[2] + 's"/>';
+      }).join('');
+      return svg('The little dragon reading a bedtime story by lamplight',
+        '<rect width="400" height="300" fill="#f5e4c4"/><rect y="250" width="400" height="50" fill="#d9b88a"/>' +
+        '<circle class="glow" cx="58" cy="96" r="70" fill="#ffe7a3"/><rect x="54" y="110" width="7" height="140" fill="#8a6a4a"/><path d="M28 112 L88 112 L74 74 L42 74 Z" fill="var(--lamp)"/><rect x="34" y="246" width="40" height="8" rx="4" fill="#8a6a4a"/>' +
+        sparkles +
+        at(110, 50, 0.95, dragon({ eyes: 'open', mouth: 'small', extra:
+          '<rect x="44" y="146" width="112" height="62" rx="6" fill="#c0563f"/>' +
+          '<path d="M50 150 H100 V204 H50 Z" fill="#fffaf0"/><path d="M100 150 H150 V204 H100 Z" fill="#fffaf0"/>' +
+          '<g stroke="#d8cdb8" stroke-width="2"><path d="M58 162 H92 M58 172 H92 M58 182 H88 M108 162 H142 M108 172 H142 M108 182 H136"/></g>' +
+          '<rect class="page" x="100" y="150" width="50" height="54" fill="#ffffff" stroke="#e6dcc8"/>' +
+          '<ellipse cx="54" cy="178" rx="13" ry="24" fill="var(--scale)" transform="rotate(-24 54 178)"/><ellipse cx="146" cy="178" rx="13" ry="24" fill="var(--scale)" transform="rotate(24 146 178)"/>' })));
+    },
+    dim: function () {
+      return svg('The forest friend and the little dragon climbing into bed as the lights dim',
+        '<rect width="400" height="300" fill="#4c5590"/><rect x="270" y="22" width="100" height="90" rx="10" fill="#1f2550" stroke="#e8e2ff" stroke-width="6"/>' +
+        '<g class="moonrise"><circle cx="314" cy="64" r="18" fill="#fdf6d8"/><circle cx="323" cy="58" r="15" fill="#1f2550"/></g>' +
+        bed(at(66, 98, 0.6, forest({ eyes: 'sleepy', mouth: 'small' }), 'sink') + at(204, 112, 0.58, dragon({ eyes: 'sleepy', mouth: 'small' }), 'sink')) +
+        '<rect class="dimlayer" width="400" height="300" fill="#050816" opacity="0"/>');
+    },
+    off: function () {
+      return svg('The forest friend and the little dragon fast asleep in bed under the stars',
+        '<rect width="400" height="300" fill="#141a36"/>' + STARS_BG + '<circle cx="340" cy="52" r="20" fill="#fdf6d8"/><circle cx="350" cy="46" r="17" fill="#141a36"/>' +
+        bed(at(70, 118, 0.56, forest({ eyes: 'closed', mouth: 'small' })) + at(206, 128, 0.54, dragon({ eyes: 'closed', mouth: 'small' })), 'breathe') +
+        zzz(110, 112, '#cfd6ff') + zzz(250, 124, '#ffd2a8') +
+        '<rect width="400" height="300" fill="#050816" opacity=".25"/>');
+    }
+  };
+
+  /* ---------- Sound ---------- */
+  var AC = null, armed = false, wake = null;
+  function chime(soft) {
+    if (!AC || !opts.chime) return;
+    var notes = [659.25, 783.99, 987.77, 1318.51, 987.77, 783.99, 659.25];
+    notes.forEach(function (f, i) {
+      var t = AC.currentTime + i * 0.3, o = AC.createOscillator(), g = AC.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(soft ? 0.07 : 0.15, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + 1.6);
+    });
+  }
+  function speak(text) {
+    if (!opts.voice || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text); u.rate = 0.9; u.pitch = 1.15;
+      setTimeout(function () { window.speechSynthesis.speak(u); }, opts.chime ? 2200 : 200);
+    } catch (e) {}
+  }
+  function requestWake() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (w) { wake = w; }, function () {});
+  }
+
+  /* ---------- Page ---------- */
+  var heroEl = document.getElementById('hero-scene'), clockEl = document.getElementById('clock'), nowEl = document.getElementById('nowline');
+  var routineEl = document.getElementById('routine'), starsEl = document.getElementById('stars');
+  var armBtn = document.getElementById('arm'), armNote = document.getElementById('armnote');
+  var alarmEl = document.getElementById('alarm'), alScene = document.getElementById('al-scene');
+  var alTime = document.getElementById('al-time'), alTitle = document.getElementById('al-title'), alMsg = document.getElementById('al-msg');
+  var alDone = document.getElementById('al-done'), alClose = document.getElementById('al-close');
+  var chimeBox = document.getElementById('opt-chime'), voiceBox = document.getElementById('opt-voice');
+  chimeBox.checked = opts.chime; voiceBox.checked = opts.voice;
+  chimeBox.addEventListener('change', function () { opts.chime = chimeBox.checked; save('sfb-opts', opts); });
+  voiceBox.addEventListener('change', function () { opts.voice = voiceBox.checked; save('sfb-opts', opts); });
+
+  starsEl.innerHTML = STEPS.map(function () { return '<span aria-hidden="true">★</span>'; }).join('');
+  function renderStars(popIdx) {
+    var done = doneList();
+    [].forEach.call(starsEl.children, function (s, i) { s.classList.toggle('on', i < done.length); if (i === popIdx) { s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); } });
+    starsEl.setAttribute('aria-label', done.length + ' of ' + STEPS.length + ' stars earned tonight');
+  }
+
+  routineEl.innerHTML = STEPS.map(function (s) {
+    return '<li class="row" id="row-' + s.id + '" data-state="later">' +
+      '<div class="mini scene paused">' + SCENES[s.id]() + '</div>' +
+      '<div class="txt"><span class="pill">Later</span><h3>' + s.name + '</h3><p>' + s.sub + '</p></div>' +
+      '<label class="time" for="t-' + s.id + '"><span hidden>Time for ' + s.name + '</span><input type="time" id="t-' + s.id + '" value="' + s.time + '"></label>' +
+      '<button class="ghost" type="button" data-preview="' + s.id + '">Watch</button></li>';
+  }).join('');
+  STEPS.forEach(function (s) {
+    var input = document.getElementById('t-' + s.id);
+    input.addEventListener('change', function () {
+      if (!/^\d\d:\d\d$/.test(input.value)) return;
+      s.time = input.value; savedTimes[s.id] = s.time; save('sfb-times-v2', savedTimes); lastState = null; tick();
+    });
+  });
+  routineEl.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-preview]'); if (!b) return;
+    openAlarm(STEPS.filter(function (s) { return s.id === b.dataset.preview; })[0], true);
+  });
+
+  /* Which step are we in right now? */
+  function currentState(d) {
+    var n = nowMins(d);
+    if (n < 6 * 60) return 'off';
+    var cur = 'idle';
+    STEPS.forEach(function (s) { if (n >= mins(s.time)) cur = s.id; });
+    return cur;
+  }
+  var lastState = null;
+  function render(d) {
+    var h = d.getHours(), m = d.getMinutes();
+    clockEl.innerHTML = (h % 12 || 12) + ':' + String(m).padStart(2, '0') + '<span>' + (h >= 12 ? 'pm' : 'am') + '</span>';
+    var n = nowMins(d), state = currentState(d), done = doneList();
+    var ns = noSchool(d), nsEl = document.getElementById('noschool'), alNs = document.getElementById('al-noschool');
+    nsEl.hidden = alNs.hidden = !ns;
+    if (ns) { document.getElementById('ns-why').textContent = ns; document.getElementById('al-ns-why').textContent = ns; }
+    var next = STEPS.filter(function (s) { return mins(s.time) > n; })[0];
+    if (n < 6 * 60) next = null;
+    if (next) nowEl.innerHTML = 'Next: <b>' + next.name + '</b> at ' + fmt(next.time) + ' · ' + untilText(mins(next.time) - n);
+    else if (state === 'off') nowEl.innerHTML = '<b>Lights off.</b> Sweet dreams until morning.';
+    else nowEl.innerHTML = 'Tonight starts with <b>' + STEPS[0].name + '</b> at ' + fmt(STEPS[0].time);
+    STEPS.forEach(function (s) {
+      var row = document.getElementById('row-' + s.id), st = done.indexOf(s.id) >= 0 ? 'done' : s.id === state ? 'now' : 'later';
+      if (row.dataset.state !== st) { row.dataset.state = st; row.querySelector('.pill').textContent = st === 'done' ? 'Done ★' : st === 'now' ? 'Now' : 'Later'; }
+    });
+    if (state !== lastState) {
+      lastState = state;
+      heroEl.innerHTML = SCENES[state]();
+      document.body.dataset.mood = state === 'dim' ? 'dim' : state === 'off' ? 'off' : 'day';
+    }
+  }
+
+  var lastCheck = new Date();
+  function tick() {
+    var d = new Date();
+    STEPS.forEach(function (s) { var at = stepAt(s, d); if (at > lastCheck && at <= d) openAlarm(s, false); });
+    lastCheck = d;
+    render(d);
+    if (current && !current.preview && current.step.id !== 'off' && reminders < 3 && d - current.opened > (reminders + 1) * 120000) { reminders++; chime(true); }
+  }
+
+  /* ---------- Alarm screen ---------- */
+  var current = null, reminders = 0, autoClose = null;
+  function openAlarm(s, preview) {
+    current = { step: s, preview: preview, opened: new Date() }; reminders = 0; clearTimeout(autoClose);
+    alScene.innerHTML = SCENES[s.id]();
+    alTime.textContent = preview ? 'Preview · ' + fmt(s.time) : fmt(s.time);
+    alTitle.textContent = s.title; alMsg.textContent = s.msg;
+    alDone.textContent = s.id === 'off' ? 'Goodnight ★' : 'I did it! ★';
+    alClose.textContent = preview ? 'Close preview' : 'Close';
+    alarmEl.hidden = false; alDone.focus({ preventScroll: true });
+    chime(s.id === 'dim' || s.id === 'off'); speak(s.say);
+    if (s.id === 'off' && !preview) autoClose = setTimeout(function () { finish(true); }, 90000);
+  }
+  function closeAlarm() { alarmEl.hidden = true; alScene.innerHTML = ''; current = null; clearTimeout(autoClose); try { window.speechSynthesis.cancel(); } catch (e) {} }
+  function finish(earn) {
+    if (current && earn) {
+      var before = doneList().length; markDone(current.step.id);
+      if (doneList().length > before) renderStars(before);
+    }
+    closeAlarm(); render(new Date());
+  }
+  alDone.addEventListener('click', function () { finish(true); });
+  alClose.addEventListener('click', function () { finish(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !alarmEl.hidden) finish(false); });
+
+  armBtn.addEventListener('click', function () {
+    try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { AC = null; }
+    armed = true; requestWake();
+    armBtn.textContent = 'Alarms are on ✓'; armBtn.classList.add('armed');
+    armNote.textContent = 'Leave this page open. You’ll hear a soft chime at each step.';
+    chime(true);
+  });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && armed) requestWake(); });
+
+  renderStars(-1); tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
