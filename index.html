@@ -167,6 +167,7 @@ body[data-mood="off"] #dimmer { opacity: .58; }
       <button class="big" type="button" id="arm">Turn on tonight’s alarms</button>
       <p class="armnote" id="armnote">Tap once so the alarms can play sound. Keep this page open with the volume up.</p>
       <div class="toggles">
+        <button class="ghost" type="button" id="test-sound">Test sound</button>
         <label for="opt-chime"><input type="checkbox" id="opt-chime" checked> Music-box chime</label>
         <label for="opt-voice"><input type="checkbox" id="opt-voice" checked> Read it aloud</label>
       </div>
@@ -178,7 +179,7 @@ body[data-mood="off"] #dimmer { opacity: .58; }
     <ol class="routine" id="routine"></ol>
   </section>
 
-  <p class="foot">Alarms only ring while this page is open on this device, so leave it on a tablet or phone near the bed. Change any time and it’s remembered here. Tap Watch to preview a scene.</p>
+  <p class="foot">Alarms only ring while this page is open on this device, so leave it on a tablet or phone near the bed. Change any time and it’s remembered here. Tap Watch to preview a scene. For sound on a phone: turn the media volume up, take it off silent (on iPhone, the side switch mutes web pages), and keep the screen on, because phones pause web pages when the screen locks.</p>
 </main>
 
 <div id="dimmer" aria-hidden="true"></div>
@@ -193,6 +194,7 @@ body[data-mood="off"] #dimmer { opacity: .58; }
       <p id="al-msg"></p>
       <div class="al-actions">
         <button class="big" type="button" id="al-done">I did it! ★</button>
+        <button class="ghost" type="button" id="al-sound" hidden>Play the sound</button>
         <button class="ghost" type="button" id="al-close">Close</button>
       </div>
     </div>
@@ -401,16 +403,32 @@ body[data-mood="off"] #dimmer { opacity: .58; }
 
   /* ---------- Sound ---------- */
   var AC = null, armed = false, wake = null;
+  /* Phones only allow sound after a tap, and pause it when the screen dims or the tab is hidden.
+     ensureAudio() creates or wakes the sound engine; call it from every tap. */
+  function ensureAudio() {
+    try {
+      AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+      if (AC.state !== 'running') return AC.resume().then(function () { return AC.state === 'running'; }, function () { return false; });
+      return Promise.resolve(true);
+    } catch (e) { AC = null; return Promise.resolve(false); }
+  }
+  function audioReady() { return !!AC && AC.state === 'running'; }
   function chime(soft) {
-    if (!AC || !opts.chime) return;
-    var notes = [659.25, 783.99, 987.77, 1318.51, 987.77, 783.99, 659.25];
-    notes.forEach(function (f, i) {
-      var t = AC.currentTime + i * 0.3, o = AC.createOscillator(), g = AC.createGain();
-      o.type = 'sine'; o.frequency.value = f;
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(soft ? 0.07 : 0.15, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
-      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + 1.6);
+    if (!opts.chime || !AC) return;
+    // Wake the engine first in case the phone paused it; the notes play once it's running.
+    ensureAudio().then(function (ok) {
+      if (!ok) return;
+      var notes = [659.25, 783.99, 987.77, 1318.51, 987.77, 783.99, 659.25];
+      notes.forEach(function (f, i) {
+        var t = AC.currentTime + 0.05 + i * 0.3, o = AC.createOscillator(), g = AC.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(soft ? 0.12 : 0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+        o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + 1.6);
+      });
     });
   }
+  // Any tap on the page (re)unlocks sound, so a later alarm can play.
+  document.addEventListener('pointerdown', function () { if (AC || armed) ensureAudio(); }, true);
   function speak(text) {
     if (!opts.voice || !('speechSynthesis' in window)) return;
     try {
@@ -459,6 +477,8 @@ body[data-mood="off"] #dimmer { opacity: .58; }
   });
   routineEl.addEventListener('click', function (e) {
     var b = e.target.closest('[data-preview]'); if (!b) return;
+    // The tap on Watch is what lets the phone play the preview's sound.
+    ensureAudio();
     openAlarm(STEPS.filter(function (s) { return s.id === b.dataset.preview; })[0], true);
   });
 
@@ -513,9 +533,19 @@ body[data-mood="off"] #dimmer { opacity: .58; }
     alDone.textContent = s.id === 'off' ? 'Goodnight ★' : 'I did it! ★';
     alClose.textContent = preview ? 'Close preview' : 'Close';
     alarmEl.hidden = false; alDone.focus({ preventScroll: true });
+    alSound.hidden = true;
     chime(s.id === 'dim' || s.id === 'off'); speak(s.say);
+    // If the phone still blocked sound (no tap since the screen dimmed), offer a button to play it.
+    if (opts.chime || opts.voice) setTimeout(function () { if (current && !audioReady()) alSound.hidden = false; }, 800);
     if (s.id === 'off' && !preview) autoClose = setTimeout(function () { finish(true); }, 90000);
   }
+  var alSound = document.getElementById('al-sound');
+  alSound.addEventListener('click', function () {
+    ensureAudio().then(function () {
+      alSound.hidden = audioReady();
+      if (current) { chime(current.step.id === 'dim' || current.step.id === 'off'); speak(current.step.say); }
+    });
+  });
   function closeAlarm() { alarmEl.hidden = true; alScene.innerHTML = ''; current = null; clearTimeout(autoClose); try { window.speechSynthesis.cancel(); } catch (e) {} }
   function finish(earn) {
     if (current && earn) {
@@ -529,13 +559,22 @@ body[data-mood="off"] #dimmer { opacity: .58; }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !alarmEl.hidden) finish(false); });
 
   armBtn.addEventListener('click', function () {
-    try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { AC = null; }
+    ensureAudio();
     armed = true; requestWake();
     armBtn.textContent = 'Alarms are on ✓'; armBtn.classList.add('armed');
-    armNote.textContent = 'Leave this page open. You’ll hear a soft chime at each step.';
+    armNote.textContent = 'Leave this page open with the screen on. You’ll hear a chime at each step.';
     chime(true);
   });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && armed) requestWake(); });
+  document.getElementById('test-sound').addEventListener('click', function () {
+    ensureAudio().then(function (ok) {
+      if (!ok) { armNote.textContent = 'This browser blocked the sound. Check the phone isn’t on silent and the media volume is up, then try again.'; return; }
+      var c = opts.chime, v = opts.voice; opts.chime = true; opts.voice = true;
+      chime(false); speak('This is how the bedtime alarm sounds.');
+      opts.chime = c; opts.voice = v;
+    });
+  });
+  // Coming back to the page: keep the screen awake and wake the sound engine again.
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && armed) { requestWake(); ensureAudio(); } });
 
   renderStars(-1); tick(); setInterval(tick, 1000);
 })();
