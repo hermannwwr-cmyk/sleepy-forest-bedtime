@@ -55,7 +55,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--moss); outl
 .armnote { font-size: .92rem; color: var(--soft); }
 .toggles { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .95rem; font-weight: 700; }
 .toggles label { display: flex; gap: .4rem; align-items: center; cursor: pointer; }
-.toggles input { width: 1.1rem; height: 1.1rem; accent-color: var(--moss); }
+.toggles input[type="checkbox"] { width: 1.1rem; height: 1.1rem; accent-color: var(--moss); }
+.toggles .vol input { width: 8rem; accent-color: var(--moss); }
 
 .routine { list-style: none; margin: .8rem 0 0; padding: 0; display: grid; gap: .7rem; }
 .row { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto auto; gap: 1rem; align-items: center; background: var(--card); border: 2px solid var(--line); border-radius: 18px; padding: .6rem .9rem .6rem .6rem; }
@@ -170,6 +171,8 @@ body[data-mood="off"] #dimmer { opacity: .58; }
         <button class="ghost" type="button" id="test-sound">Test sound</button>
         <label for="opt-chime"><input type="checkbox" id="opt-chime" checked> Music-box chime</label>
         <label for="opt-voice"><input type="checkbox" id="opt-voice" checked> Read it aloud</label>
+        <label for="opt-music"><input type="checkbox" id="opt-music" checked> Bedtime music</label>
+        <label for="opt-music-vol" class="vol">Music volume <input type="range" id="opt-music-vol" min="0" max="1" step="0.05" value="0.4"></label>
       </div>
     </div>
   </section>
@@ -254,6 +257,8 @@ body[data-mood="off"] #dimmer { opacity: .58; }
   var savedTimes = load('sfb-times-v2', {});
   STEPS.forEach(function (s) { if (/^\d\d:\d\d$/.test(savedTimes[s.id] || '')) s.time = savedTimes[s.id]; });
   var opts = load('sfb-opts', { chime: true, voice: true });
+  if (opts.music == null) opts.music = true;
+  if (opts.musicVol == null) opts.musicVol = 0.4;
   function nightKey(d) { var x = new Date(d); if (x.getHours() < 6) x.setDate(x.getDate() - 1); return x.getFullYear() + '-' + (x.getMonth() + 1) + '-' + x.getDate(); }
   function doneList() { return load('sfb-done-' + nightKey(new Date()), []); }
   function markDone(id) { var l = doneList(); if (l.indexOf(id) < 0) { l.push(id); save('sfb-done-' + nightKey(new Date()), l); } }
@@ -412,9 +417,53 @@ body[data-mood="off"] #dimmer { opacity: .58; }
       return Promise.resolve(true);
     } catch (e) { AC = null; return Promise.resolve(false); }
   }
-  function audioReady() { return !!AC && AC.state === 'running'; }
+  function audioReady() { return (!!AC && AC.state === 'running') || keepAliveOn; }
+
+  /* Android pauses web pages when the screen dims or locks, so a timer-triggered chime can't play.
+     Once alarms are switched on, a silent looping track keeps the page awake (Android shows it as media
+     playing), and the chime itself is a pre-made sound file played through an <audio> element, which
+     phones allow once the page has been tapped. */
+  function wavUrl(samples, rate) {
+    var buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+    var str = function (o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+    v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, samples.length * 2, true);
+    for (var i = 0; i < samples.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 32767, true);
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  }
+  function chimeSamples(level) {
+    var rate = 22050, notes = [659.25, 783.99, 987.77, 1318.51, 987.77, 783.99, 659.25];
+    var out = new Float32Array(Math.ceil(rate * (notes.length * 0.3 + 1.6)));
+    notes.forEach(function (f, n) {
+      var start = Math.floor(n * 0.3 * rate);
+      for (var i = 0; i < rate * 1.5 && start + i < out.length; i++) {
+        var t = i / rate, env = t < 0.02 ? t / 0.02 : Math.exp(-(t - 0.02) * 4);
+        out[start + i] += Math.sin(2 * Math.PI * f * t) * env * level;
+      }
+    });
+    return wavUrl(out, rate);
+  }
+  var keepAlive = new Audio(wavUrl(new Float32Array(22050), 22050)); keepAlive.loop = true;
+  var chimeLoud = new Audio(chimeSamples(0.35)), chimeSoft = new Audio(chimeSamples(0.18));
+  var keepAliveOn = false;
+  function startKeepAlive() {
+    // Must run inside a tap. Also "plays" the chimes silently once so the phone lets them play later.
+    keepAlive.play().then(function () { keepAliveOn = true; document.body.dataset.awake = 'on'; }, function () {});
+    [chimeLoud, chimeSoft].forEach(function (a) {
+      a.muted = true;
+      a.play().then(function () { a.pause(); a.currentTime = 0; a.muted = false; }, function () { a.muted = false; });
+    });
+  }
   function chime(soft) {
-    if (!opts.chime || !AC) return;
+    if (!opts.chime) return;
+    var a = soft ? chimeSoft : chimeLoud;
+    a.currentTime = 0;
+    // The audio file works even after the screen has been off; fall back to generated tones if it's refused.
+    a.play().catch(function () { toneChime(soft); });
+  }
+  function toneChime(soft) {
+    if (!AC) return;
     // Wake the engine first in case the phone paused it; the notes play once it's running.
     ensureAudio().then(function (ok) {
       if (!ok) return;
@@ -427,6 +476,73 @@ body[data-mood="off"] #dimmer { opacity: .58; }
       });
     });
   }
+  /* ---------- Bedtime music ----------
+     A slow music-box "Twinkle Twinkle Little Star" (public domain) with a soft bass note on each pair,
+     made on the page as a sound file and looped. */
+  function lullabyUrl() {
+    var rate = 22050, beat = 0.6;
+    var C5 = 523.25, D5 = 587.33, E5 = 659.25, F5 = 698.46, G5 = 783.99, A5 = 880.0;
+    var C3 = 130.81, F3 = 174.61, G3 = 196.0;
+    // [note, beats, bass] — bass is played with the first note of each pair.
+    var tune = [
+      [C5, 1, C3], [C5, 1], [G5, 1, C3], [G5, 1], [A5, 1, F3], [A5, 1], [G5, 2, C3],
+      [F5, 1, F3], [F5, 1], [E5, 1, C3], [E5, 1], [D5, 1, G3], [D5, 1], [C5, 2, C3],
+      [G5, 1, C3], [G5, 1], [F5, 1, F3], [F5, 1], [E5, 1, C3], [E5, 1], [D5, 2, G3],
+      [G5, 1, C3], [G5, 1], [F5, 1, F3], [F5, 1], [E5, 1, C3], [E5, 1], [D5, 2, G3],
+      [C5, 1, C3], [C5, 1], [G5, 1, C3], [G5, 1], [A5, 1, F3], [A5, 1], [G5, 2, C3],
+      [F5, 1, F3], [F5, 1], [E5, 1, C3], [E5, 1], [D5, 1, G3], [D5, 1], [C5, 2, C3], [0, 2]
+    ];
+    var total = tune.reduce(function (s, n) { return s + n[1]; }, 0) * beat;
+    var out = new Float32Array(Math.ceil(rate * total));
+    var add = function (f, at, len, level, decay) {
+      var s0 = Math.floor(at * rate);
+      for (var i = 0; i < len * rate && s0 + i < out.length; i++) {
+        var t = i / rate, env = (t < 0.01 ? t / 0.01 : 1) * Math.exp(-t * decay);
+        // A bell-like tone: the note plus a quiet octave above.
+        out[s0 + i] += (Math.sin(2 * Math.PI * f * t) + 0.25 * Math.sin(4 * Math.PI * f * t)) * env * level;
+      }
+    };
+    var at = 0;
+    tune.forEach(function (n) {
+      if (n[0]) add(n[0], at, Math.min(n[1] * beat + 1, 2.4), 0.22, 2.2);
+      if (n[2]) add(n[2], at, 2 * beat + 0.6, 0.16, 1.4);
+      at += n[1] * beat;
+    });
+    return wavUrl(out, rate);
+  }
+  var music = null, musicFade = null;
+  function musicVolume() { return Math.max(0, Math.min(1, opts.musicVol == null ? 0.4 : opts.musicVol)); }
+  function startMusic() {
+    // Must run inside a tap the first time.
+    if (!opts.music) return;
+    if (!music) {
+      music = new Audio(lullabyUrl()); music.loop = true;
+      // Recorded on the page so it's easy to check whether the music is really playing.
+      music.addEventListener('playing', function () { document.body.dataset.music = 'playing'; });
+      music.addEventListener('pause', function () { document.body.dataset.music = 'paused'; });
+    }
+    clearInterval(musicFade);
+    music.volume = musicVolume();
+    music.play().catch(function () {});
+  }
+  function stopMusic() { clearInterval(musicFade); if (music) music.pause(); }
+  /** Quieter while an alarm chimes and speaks, then back up. */
+  function duckMusic() {
+    if (!music || music.paused) return;
+    music.volume = musicVolume() * 0.25;
+    setTimeout(function () { if (music) music.volume = musicVolume(); }, 9000);
+  }
+  /** After lights off, fade the music out over five minutes. */
+  function fadeOutMusic() {
+    if (!music || music.paused) return;
+    clearInterval(musicFade);
+    var steps = 60, i = 0, from = music.volume;
+    musicFade = setInterval(function () {
+      i++; music.volume = Math.max(0, from * (1 - i / steps));
+      if (i >= steps) { clearInterval(musicFade); music.pause(); }
+    }, 5000);
+  }
+
   // Any tap on the page (re)unlocks sound, so a later alarm can play.
   document.addEventListener('pointerdown', function () { if (AC || armed) ensureAudio(); }, true);
   function speak(text) {
@@ -452,6 +568,16 @@ body[data-mood="off"] #dimmer { opacity: .58; }
   var chimeBox = document.getElementById('opt-chime'), voiceBox = document.getElementById('opt-voice');
   chimeBox.checked = opts.chime; voiceBox.checked = opts.voice;
   chimeBox.addEventListener('change', function () { opts.chime = chimeBox.checked; save('sfb-opts', opts); });
+  var musicBox = document.getElementById('opt-music'), musicVol = document.getElementById('opt-music-vol');
+  musicBox.checked = opts.music; musicVol.value = opts.musicVol;
+  musicBox.addEventListener('change', function () {
+    opts.music = musicBox.checked; save('sfb-opts', opts);
+    if (opts.music) startMusic(); else stopMusic();
+  });
+  musicVol.addEventListener('input', function () {
+    opts.musicVol = Number(musicVol.value); save('sfb-opts', opts);
+    if (music) music.volume = musicVolume();
+  });
   voiceBox.addEventListener('change', function () { opts.voice = voiceBox.checked; save('sfb-opts', opts); });
 
   starsEl.innerHTML = STEPS.map(function () { return '<span aria-hidden="true">★</span>'; }).join('');
@@ -534,7 +660,9 @@ body[data-mood="off"] #dimmer { opacity: .58; }
     alClose.textContent = preview ? 'Close preview' : 'Close';
     alarmEl.hidden = false; alDone.focus({ preventScroll: true });
     alSound.hidden = true;
+    duckMusic();
     chime(s.id === 'dim' || s.id === 'off'); speak(s.say);
+    if (s.id === 'off' && !preview) setTimeout(fadeOutMusic, 9000);
     // If the phone still blocked sound (no tap since the screen dimmed), offer a button to play it.
     if (opts.chime || opts.voice) setTimeout(function () { if (current && !audioReady()) alSound.hidden = false; }, 800);
     if (s.id === 'off' && !preview) autoClose = setTimeout(function () { finish(true); }, 90000);
@@ -560,6 +688,8 @@ body[data-mood="off"] #dimmer { opacity: .58; }
 
   armBtn.addEventListener('click', function () {
     ensureAudio();
+    startKeepAlive();
+    startMusic();
     armed = true; requestWake();
     armBtn.textContent = 'Alarms are on ✓'; armBtn.classList.add('armed');
     armNote.textContent = 'Leave this page open with the screen on. You’ll hear a chime at each step.';
@@ -574,7 +704,9 @@ body[data-mood="off"] #dimmer { opacity: .58; }
     });
   });
   // Coming back to the page: keep the screen awake and wake the sound engine again.
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && armed) { requestWake(); ensureAudio(); } });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && armed) { requestWake(); ensureAudio(); if (keepAlive.paused) keepAlive.play().catch(function () {}); }
+  });
 
   renderStars(-1); tick(); setInterval(tick, 1000);
 })();

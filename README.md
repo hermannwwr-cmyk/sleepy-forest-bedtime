@@ -17,6 +17,7 @@ A kids' bedtime alarm in a single web page. Two cartoon friends, a round grey fo
 - The page dims at lights dim and goes dark at lights off
 - A flashing **NO SCHOOL!** badge when tomorrow is a weekend or a Singapore public holiday
 - Editable times, saved on the device
+- Gentle music-box bedtime music ("Twinkle Twinkle Little Star"), with an on/off switch and volume
 - A **Watch** button to preview any scene
 
 ## Use it
